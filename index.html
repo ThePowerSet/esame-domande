@@ -102,7 +102,8 @@
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
                 <span class="text-xs text-slate-300" x-text="q.timestamp"></span>
-                <button @click="confirmDelete(q)"
+                <button x-show="myNome && q.nome === myNome"
+                  @click="confirmDelete(q)"
                   class="text-slate-300 hover:text-red-400 transition-colors text-sm leading-none"
                   title="Elimina">✕</button>
               </div>
@@ -245,6 +246,7 @@
         showModal: false,
         submitting: false,
         deleteTarget: null,
+        myNome: localStorage.getItem('esame_nome') || '',
         form: { materia: '', domanda: '', risposta: '', sessione: '', nome: '' },
 
         get materie() {
@@ -266,8 +268,9 @@
         color(m) { return color(m); },
 
         init() {
-          const saved = localStorage.getItem('esame_nome');
-          if (saved) this.form.nome = saved;
+          const saved = localStorage.getItem('esame_nome') || '';
+          this.form.nome = saved;
+          this.myNome = saved;
           this.loadQuestions();
         },
 
@@ -298,6 +301,7 @@
             .withSuccessHandler(() => {
               this.submitting = false;
               this.showModal = false;
+              this.myNome = this.form.nome;
               this.loadQuestions();
             })
             .withFailureHandler(() => {
