@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Domande Esame</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    [x-cloak] { display: none !important; }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card-anim { animation: slideUp 0.18s ease-out; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.8s linear infinite; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen" x-data="app()" x-init="init()">
+
+  <!-- ───── HEADER ───── -->
+  <header class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg">
+    <div class="max-w-3xl mx-auto px-4 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold tracking-tight">Domande Esame</h1>
+        <p class="text-indigo-200 text-xs mt-0.5">
+          <span x-text="questions.length"></span> domande &middot;
+          <span x-text="materie.length"></span> <span x-text="materie.length === 1 ? 'materia' : 'materie'"></span>
+        </p>
+      </div>
+      <button @click="openModal()"
+        class="bg-white/20 hover:bg-white/30 backdrop-blur text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all border border-white/30 shadow">
+        + Aggiungi
+      </button>
+    </div>
+  </header>
+
+  <!-- ───── FILTERS ───── -->
+  <div class="max-w-3xl mx-auto px-4 pt-4 pb-3">
+    <!-- Search -->
+    <input x-model="search" type="text" placeholder="Cerca domanda, materia o risposta..."
+      class="w-full border border-slate-200 bg-white rounded-xl px-4 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-3">
+
+    <!-- Subject chips -->
+    <div class="flex gap-2 flex-wrap">
+      <button @click="filterMateria = ''"
+        :class="filterMateria === '' ? 'bg-indigo-600 text-white shadow' : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300'"
+        class="px-3 py-1.5 rounded-full text-xs font-medium transition-all">
+        Tutte
+      </button>
+      <template x-for="m in materie" :key="m">
+        <button @click="filterMateria = filterMateria === m ? '' : m"
+          :style="filterMateria === m ? `background:${color(m)};color:#fff` : `border-color:${color(m)}44`"
+          :class="filterMateria !== m ? 'bg-white text-slate-700' : ''"
+          class="px-3 py-1.5 rounded-full text-xs font-medium border transition-all">
+          <span x-text="m"></span>
+          <span class="ml-1 opacity-70" x-text="`(${questions.filter(q=>q.materia===m).length})`"></span>
+        </button>
+      </template>
+    </div>
+  </div>
+
+  <!-- ───── QUESTION LIST ───── -->
+  <main class="max-w-3xl mx-auto px-4 pb-16">
+
+    <!-- Loading -->
+    <div x-show="loading" class="flex flex-col items-center py-20 text-slate-400 gap-3">
+      <svg class="spinner w-8 h-8 text-indigo-500" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      <span class="text-sm">Caricamento...</span>
+    </div>
+
+    <!-- Empty -->
+    <div x-show="!loading && filteredQuestions.length === 0" class="text-center py-20 text-slate-400">
+      <div class="text-5xl mb-3">🎓</div>
+      <p class="font-medium text-slate-500" x-text="questions.length === 0 ? 'Ancora nessuna domanda' : 'Nessun risultato'"></p>
+      <p class="text-sm mt-1" x-show="questions.length === 0">Sii il primo ad aggiungerne una!</p>
+    </div>
+
+    <!-- Cards -->
+    <div class="space-y-3" x-show="!loading">
+      <template x-for="q in filteredQuestions" :key="q.id">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden card-anim hover:shadow-md transition-shadow">
+
+          <!-- Top color bar -->
+          <div class="h-1" :style="`background:${color(q.materia)}`"></div>
+
+          <div class="p-4">
+            <!-- Meta row -->
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-full text-white"
+                      :style="`background:${color(q.materia)}`"
+                      x-text="q.materia"></span>
+                <span x-show="q.sessione" class="text-xs text-slate-400" x-text="`📅 ${q.sessione}`"></span>
+                <span class="text-xs text-slate-400" x-text="`👤 ${q.nome}`"></span>
+              </div>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="text-xs text-slate-300" x-text="q.timestamp"></span>
+                <button @click="confirmDelete(q)"
+                  class="text-slate-300 hover:text-red-400 transition-colors text-sm leading-none"
+                  title="Elimina">✕</button>
+              </div>
+            </div>
+
+            <!-- Question text -->
+            <p class="text-slate-800 font-medium leading-snug" x-text="q.domanda"></p>
+
+            <!-- Answer toggle -->
+            <div x-show="q.risposta" class="mt-3">
+              <button @click="q._open = !q._open"
+                class="text-xs font-medium transition-colors flex items-center gap-1"
+                :style="`color:${color(q.materia)}`">
+                <span x-text="q._open ? '▾ Nascondi risposta' : '▸ Mostra risposta'"></span>
+              </button>
+              <div x-show="q._open" x-transition:enter="transition ease-out duration-150"
+                x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+                class="mt-2 p-3 bg-slate-50 rounded-xl text-sm text-slate-600 leading-relaxed border-l-2"
+                :style="`border-color:${color(q.materia)}88`">
+                <span x-text="q.risposta"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </main>
+
+  <!-- ───── ADD MODAL ───── -->
+  <div x-show="showModal" x-cloak
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background:rgba(0,0,0,0.45)">
+    <div @click.outside="showModal = false"
+      class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6">
+      <h2 class="text-base font-bold text-slate-800 mb-4">Nuova domanda</h2>
+
+      <form @submit.prevent="submitQuestion()">
+        <!-- Materia -->
+        <div class="mb-3">
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Materia *</label>
+          <input x-model="form.materia" list="materie-list" type="text" required
+            placeholder="es. Analisi 2, Fisica, Diritto..."
+            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <datalist id="materie-list">
+            <template x-for="m in materie" :key="m"><option :value="m"></option></template>
+          </datalist>
+        </div>
+
+        <!-- Domanda -->
+        <div class="mb-3">
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Domanda *</label>
+          <textarea x-model="form.domanda" required rows="3"
+            placeholder="Qual è la definizione di..."
+            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+        </div>
+
+        <!-- Risposta -->
+        <div class="mb-3">
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+            Risposta <span class="font-normal text-slate-400 normal-case">(opzionale)</span>
+          </label>
+          <textarea x-model="form.risposta" rows="2"
+            placeholder="La risposta corretta è..."
+            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+        </div>
+
+        <!-- Sessione + Nome -->
+        <div class="grid grid-cols-2 gap-3 mb-5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Sessione</label>
+            <input x-model="form.sessione" type="text" placeholder="es. Giugno 2026"
+              class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Il tuo nome</label>
+            <input x-model="form.nome" type="text" placeholder="es. Marco"
+              class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button type="button" @click="showModal = false"
+            class="flex-1 border border-slate-200 text-slate-600 font-semibold py-2.5 rounded-xl hover:bg-slate-50 transition-colors text-sm">
+            Annulla
+          </button>
+          <button type="submit" :disabled="submitting"
+            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+            <svg x-show="submitting" class="spinner w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span x-text="submitting ? 'Salvataggio...' : 'Salva domanda'"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ───── DELETE CONFIRM ───── -->
+  <div x-show="deleteTarget" x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    style="background:rgba(0,0,0,0.45)">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+      <div class="text-4xl mb-3">🗑️</div>
+      <p class="font-semibold text-slate-700 mb-1">Eliminare questa domanda?</p>
+      <p class="text-sm text-slate-400 mb-5 line-clamp-2" x-text="deleteTarget?.domanda"></p>
+      <div class="flex gap-3">
+        <button @click="deleteTarget = null"
+          class="flex-1 border border-slate-200 text-slate-600 font-medium py-2.5 rounded-xl hover:bg-slate-50 text-sm">
+          Annulla
+        </button>
+        <button @click="doDelete()"
+          class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-2.5 rounded-xl text-sm transition-colors">
+          Elimina
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script>
+    const PALETTE = [
+      '#4F46E5','#7C3AED','#DB2777','#DC2626','#EA580C',
+      '#D97706','#65A30D','#059669','#0891B2','#0284C7',
+      '#8B5CF6','#EC4899','#F97316','#14B8A6','#6366F1'
+    ];
+    const colorMap = {};
+    let ci = 0;
+    function color(m) {
+      if (!colorMap[m]) colorMap[m] = PALETTE[ci++ % PALETTE.length];
+      return colorMap[m];
+    }
+
+    function app() {
+      return {
+        questions: [],
+        loading: true,
+        search: '',
+        filterMateria: '',
+        showModal: false,
+        submitting: false,
+        deleteTarget: null,
+        form: { materia: '', domanda: '', risposta: '', sessione: '', nome: '' },
+
+        get materie() {
+          return [...new Set(this.questions.map(q => q.materia).filter(Boolean))].sort();
+        },
+
+        get filteredQuestions() {
+          const s = this.search.toLowerCase();
+          return this.questions.filter(q => {
+            const matchSearch = !s ||
+              q.domanda.toLowerCase().includes(s) ||
+              q.risposta.toLowerCase().includes(s) ||
+              q.materia.toLowerCase().includes(s);
+            const matchMateria = !this.filterMateria || q.materia === this.filterMateria;
+            return matchSearch && matchMateria;
+          });
+        },
+
+        color(m) { return color(m); },
+
+        init() {
+          const saved = localStorage.getItem('esame_nome');
+          if (saved) this.form.nome = saved;
+          this.loadQuestions();
+        },
+
+        loadQuestions() {
+          this.loading = true;
+          google.script.run
+            .withSuccessHandler(data => {
+              this.questions = data.map(q => ({ ...q, _open: false }));
+              this.loading = false;
+            })
+            .withFailureHandler(() => { this.loading = false; })
+            .getQuestions();
+        },
+
+        openModal() {
+          this.form.materia = '';
+          this.form.domanda = '';
+          this.form.risposta = '';
+          this.form.sessione = '';
+          this.showModal = true;
+        },
+
+        submitQuestion() {
+          if (!this.form.materia.trim() || !this.form.domanda.trim()) return;
+          this.submitting = true;
+          if (this.form.nome) localStorage.setItem('esame_nome', this.form.nome);
+          google.script.run
+            .withSuccessHandler(() => {
+              this.submitting = false;
+              this.showModal = false;
+              this.loadQuestions();
+            })
+            .withFailureHandler(() => {
+              this.submitting = false;
+              alert('Errore nel salvataggio. Riprova.');
+            })
+            .addQuestion(this.form);
+        },
+
+        confirmDelete(q) { this.deleteTarget = q; },
+
+        doDelete() {
+          const id = this.deleteTarget.id;
+          this.deleteTarget = null;
+          google.script.run
+            .withSuccessHandler(() => this.loadQuestions())
+            .deleteQuestion(id);
+        }
+      };
+    }
+  </script>
+</body>
+</html>
