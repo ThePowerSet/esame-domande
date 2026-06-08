@@ -30,7 +30,7 @@ function getQuestions() {
     .filter(row => row[0])
     .map(row => ({
       id: String(row[0]),
-      timestamp: row[1] ? Utilities.formatDate(new Date(row[1]), Session.getScriptTimeZone(), 'dd/MM/yyyy') : '',
+      timestamp: row[1] ? new Date(row[1]).toISOString() : '',
       materia: String(row[2] || ''),
       domanda: String(row[3] || ''),
       risposta: String(row[4] || ''),
