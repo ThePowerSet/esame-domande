@@ -37,8 +37,8 @@
           class="flex items-center gap-1.5 text-sm transition-all border border-white/30 rounded-xl px-3 py-2"
           :class="myNome ? 'bg-white/20 hover:bg-white/30' : 'bg-yellow-400/20 hover:bg-yellow-400/30 border-yellow-300/50'">
           <span x-text="myNome ? '👤' : '⚠️'"></span>
-          <span class="font-medium" x-text="myNome || 'Imposta nome'"></span>
-          <span class="opacity-60 text-xs">✏️</span>
+          <span class="font-medium hidden sm:inline" x-text="myNome || 'Imposta nome'"></span>
+          <span class="opacity-60 text-xs hidden sm:inline">✏️</span>
         </button>
         <button @click="openModal()"
           class="bg-white/20 hover:bg-white/30 backdrop-blur text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all border border-white/30 shadow">
