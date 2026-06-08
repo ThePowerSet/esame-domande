@@ -31,12 +31,47 @@
           <span x-text="materie.length"></span> <span x-text="materie.length === 1 ? 'materia' : 'materie'"></span>
         </p>
       </div>
-      <button @click="openModal()"
-        class="bg-white/20 hover:bg-white/30 backdrop-blur text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all border border-white/30 shadow">
-        + Aggiungi
-      </button>
+      <div class="flex items-center gap-2">
+        <!-- Name badge -->
+        <button @click="showNameModal = true"
+          class="flex items-center gap-1.5 text-sm transition-all border border-white/30 rounded-xl px-3 py-2"
+          :class="myNome ? 'bg-white/20 hover:bg-white/30' : 'bg-yellow-400/20 hover:bg-yellow-400/30 border-yellow-300/50'">
+          <span x-text="myNome ? '👤' : '⚠️'"></span>
+          <span class="font-medium" x-text="myNome || 'Imposta nome'"></span>
+          <span class="opacity-60 text-xs">✏️</span>
+        </button>
+        <button @click="openModal()"
+          class="bg-white/20 hover:bg-white/30 backdrop-blur text-white font-semibold px-4 py-2 rounded-xl text-sm transition-all border border-white/30 shadow">
+          + Aggiungi
+        </button>
+      </div>
     </div>
   </header>
+
+  <!-- ───── NAME MODAL ───── -->
+  <div x-show="showNameModal" x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    style="background:rgba(0,0,0,0.45)">
+    <div @click.outside="showNameModal = false"
+      class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6">
+      <h2 class="text-base font-bold text-slate-800 mb-1">Il tuo nome</h2>
+      <p class="text-xs text-slate-400 mb-4">Serve per riconoscere le tue domande e permetterti di eliminarle.</p>
+      <input x-model="nameInput" @keydown.enter="saveName()" type="text"
+        placeholder="es. Marco"
+        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-4"
+        x-ref="nameInput">
+      <div class="flex gap-3">
+        <button @click="showNameModal = false"
+          class="flex-1 border border-slate-200 text-slate-600 font-medium py-2.5 rounded-xl hover:bg-slate-50 text-sm">
+          Annulla
+        </button>
+        <button @click="saveName()"
+          class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">
+          Salva
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ───── FILTERS ───── -->
   <div class="max-w-3xl mx-auto px-4 pt-4 pb-3">
@@ -247,6 +282,8 @@
         submitting: false,
         deleteTarget: null,
         myNome: localStorage.getItem('esame_nome') || '',
+        showNameModal: false,
+        nameInput: '',
         form: { materia: '', domanda: '', risposta: '', sessione: '', nome: '' },
 
         get materie() {
@@ -271,7 +308,18 @@
           const saved = localStorage.getItem('esame_nome') || '';
           this.form.nome = saved;
           this.myNome = saved;
+          this.nameInput = saved;
+          if (!saved) this.showNameModal = true;
           this.loadQuestions();
+        },
+
+        saveName() {
+          const n = this.nameInput.trim();
+          if (!n) return;
+          this.myNome = n;
+          this.form.nome = n;
+          localStorage.setItem('esame_nome', n);
+          this.showNameModal = false;
         },
 
         loadQuestions() {
